@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from './config/supabase';
 import { useSupabase } from './hooks/useSupabase';
+import { useOfflineDetection } from './hooks/useOfflineDetection';
 import { ORANGE, LIGHT_BG, BORDER } from './config/constants';
 import { Loading } from './components/common/Loading';
 import { AuthPage } from './components/auth/AuthPage';
@@ -17,45 +18,44 @@ import LandingPage from './components/LandingPage'; // <-- NEW IMPORT
 import './App.css';
 
 const App = () => {
-  const { user, authReady } = useSupabase();
-  const [page, setPage] = useState('landing'); // <-- CHANGED: Starts on the landing page
-  const [cart, setCart] = useState([]);
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const { user, authReady } = useSupabase();
+  const { isOnline } = useOfflineDetection();
+  const [page, setPage] = useState('landing'); // <-- CHANGED: Starts on the landing page
+  const [cart, setCart] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const handleSignOut = useCallback(() => {
-    supabase.auth.signOut().then(() => {
-      setCart([]);
-      setPage('auth'); 
-    }).catch(console.error);
-  }, []);
+  const handleSignOut = useCallback(() => {
+    supabase.auth.signOut().then(() => {
+      setCart([]);
+      setPage('auth'); 
+    }).catch(console.error);
+  }, []);
 
-  const [showProfile, setShowProfile] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
-  useEffect(() => {
-    if (!authReady) return;
+  useEffect(() => {
+    if (!authReady) return;
     
     // Skip redirects if we are intentionally on the 'landing' page
     if (page === 'landing') return;
 
-    if (!user) {
-      if (page !== 'auth' && page !== 'restaurant-dashboard') {
-        setPage('auth');
-      }
-      return;
-    } 
+    if (!user) {
+      if (page !== 'auth' && page !== 'restaurant-dashboard') {
+        setPage('auth');
+      }
+      return;
+    } 
 
-    if (page === 'auth') {
-      setPage('products');
-    } else if (page === 'details' && !selectedOrder) {
-      setPage('history');
-    }
-    
-    if (page !== 'details' && selectedOrder) {
-      setSelectedOrder(null);
-    }
-  }, [authReady, user, page, selectedOrder]); 
-
-  const renderContent = () => {
+    if (page === 'auth') {
+      setPage('products');
+    } else if (page === 'details' && !selectedOrder) {
+      setPage('history');
+    }
+    
+    if (page !== 'details' && selectedOrder) {
+      setSelectedOrder(null);
+    }
+  }, [authReady, user, page, selectedOrder]);  const renderContent = () => {
     if (!authReady) return <Loading />;
     
     // 1. LANDING PAGE LOGIC
