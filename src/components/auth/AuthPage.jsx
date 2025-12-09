@@ -4,12 +4,17 @@ import { supabase } from '../../config/supabase';
 import { ORANGE } from '../../config/constants';
 import { FoodButton } from '../common/FoodButton';
 import { StyledInput } from '../common/StyledInput';
+import { useOfflineAuth } from '../../hooks/useOfflineAuth';
+import { useOfflineDetection } from '../../hooks/useOfflineDetection';
 
 export const AuthPage = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState('');
+  const { isOnline } = useOfflineDetection();
+  const { offlineLogin, isLoading } = useOfflineAuth();
+  const [offlineMode, setOfflineMode] = useState(false);
 
   const handleAuth = async () => {
     setError('');
@@ -42,6 +47,17 @@ export const AuthPage = ({ onSuccess }) => {
       setError(e.message || 'Authentication failed.');
     }
   };
+
+  const handleOfflineLogin = async (e) => {
+    e.preventDefault();
+    const result = await offlineLogin(email, password);
+    
+    if (result.success) {
+      onSuccess(); // Navigate to products
+    } else {
+      alert('Invalid credentials');
+    }
+  };
   
   return (
     <div className="flex justify-center items-center h-full w-full py-10"> 
@@ -68,8 +84,8 @@ export const AuthPage = ({ onSuccess }) => {
         {error && <p className="text-sm text-red-500 mt-4 font-medium">{error}</p>}
         
         <div className='mt-8'>
-          <FoodButton onClick={handleAuth}>
-            {isLogin ? 'Login Securely' : 'Sign Up Now'}
+          <FoodButton onClick={isOnline ? handleAuth : handleOfflineLogin} disabled={!isOnline && isLoading}>
+            {isOnline ? (isLogin ? 'Login Securely' : 'Sign Up Now') : (isLoading ? 'Logging in...' : 'Login (Offline Mode)')}
           </FoodButton>
         </div>
         
@@ -83,6 +99,17 @@ export const AuthPage = ({ onSuccess }) => {
             {isLogin ? 'Sign Up' : 'Login'}
           </button>
         </p>
+
+        {!isOnline && (
+          <div className="p-4 bg-yellow-100 border border-yellow-400 rounded mt-4">
+            <p className="font-semibold text-yellow-800">
+              🔴 You're Offline - Using Local Testing Mode
+            </p>
+            <p className="text-sm text-yellow-700">
+              (Use any email and 6+ character password)
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
