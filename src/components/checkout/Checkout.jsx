@@ -162,6 +162,11 @@ export const Checkout = ({ setPage, cart, setCart, user }) => {
     setPage("tracking", successOrder);
   };
 
+  const handleGoToHistory = () => {
+    setShowSuccess(false);
+    setPage("history");
+  };
+
   useEffect(() => {
     setInDeliveryArea(ILIGAN_BRGYS.includes(address.barangay));
   }, [address.barangay]);
@@ -225,6 +230,9 @@ export const Checkout = ({ setPage, cart, setCart, user }) => {
             <div className="space-y-2 pt-4">
               <FoodButton onClick={handleGoToTracking}>
                 Track My Order 🚗
+              </FoodButton>
+              <FoodButton onClick={handleGoToHistory} variant="secondary">
+                View Order History 📋
               </FoodButton>
               <button
                 onClick={() => setShowSuccess(false)}
