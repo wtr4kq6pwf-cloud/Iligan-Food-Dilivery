@@ -278,7 +278,9 @@ const RestaurantOwnerDashboard = () => {
         price: '',
         stock: '',
         description: '',
-        image_url: ''
+        image_url: '',
+        imageFile: null,
+        imagePreview: ''
     });
 
     // Restaurant edit / image upload
@@ -427,6 +429,32 @@ const RestaurantOwnerDashboard = () => {
         }
     }, [myRestaurant]);
 
+    const uploadProductImage = async (file) => {
+        if (!file) return null;
+        try {
+            const path = `${myRestaurant.id}/products/${Date.now()}_${file.name}`;
+            const { error: uploadError } = await supabase.storage.from('product-images').upload(path, file, { upsert: true });
+            if (uploadError) {
+                const msg = (uploadError.message || uploadError.error_description || '').toString();
+                if (msg.toLowerCase().includes('bucket') || msg.toLowerCase().includes('not found')) {
+                    throw new Error('Bucket "product-images" not found. Create a public storage bucket named "product-images" in your Supabase project or update the bucket name in the frontend code.');
+                }
+                throw uploadError;
+            }
+            const { data } = supabase.storage.from('product-images').getPublicUrl(path);
+            return data?.publicUrl || null;
+        } catch (err) {
+            console.error('Upload error:', err);
+            throw err;
+        }
+    };
+
+    const handleProductImageChange = (e) => {
+        const file = e.target.files?.[0] || null;
+        if (!file) return;
+        setProductForm(prev => ({ ...prev, imageFile: file, imagePreview: URL.createObjectURL(file) }));
+    };
+
     const handleProductSubmit = async () => {
         if (!productForm.name || !productForm.price || !productForm.stock) {
             alert('Please fill in all required fields (Name, Price, Stock)');
@@ -434,13 +462,26 @@ const RestaurantOwnerDashboard = () => {
         }
 
         try {
+            let imageUrl = productForm.image_url;
+            if (productForm.imageFile) {
+                try {
+                    imageUrl = await uploadProductImage(productForm.imageFile);
+                } catch (uploadErr) {
+                    if ((uploadErr.message || '').toLowerCase().includes('bucket "product-images" not found')) {
+                        alert('Upload failed: storage bucket "product-images" not found. Product will be saved without the image. Create the bucket in Supabase Storage (public) or change the bucket name in the code.');
+                        imageUrl = '';
+                    } else {
+                        throw uploadErr;
+                    }
+                }
+            }
             const productData = {
                 food_item_id: editingProduct?.food_item_id || `${myRestaurant.id}_${Date.now()}`,
                 name: productForm.name,
                 price: parseFloat(productForm.price),
                 stock: parseInt(productForm.stock),
                 description: productForm.description,
-                image_url: productForm.image_url,
+                image_url: imageUrl,
                 restaurant_id: myRestaurant.id
             };
             if (editingProduct) {
@@ -453,7 +494,7 @@ const RestaurantOwnerDashboard = () => {
             await loadProducts();
             setShowProductModal(false);
             setEditingProduct(null);
-            setProductForm({ name: '', price: '', stock: '', description: '', image_url: '' });
+            setProductForm({ name: '', price: '', stock: '', description: '', image_url: '', imageFile: null, imagePreview: '' });
         } catch (error) {
             console.error('Error saving product:', error);
             alert('Failed to save product: ' + error.message);
@@ -914,7 +955,13 @@ const RestaurantOwnerDashboard = () => {
                                             <div><label className="block text-xs font-bold mb-1" style={{ color: NAVY }}>Stock *</label><StyledInput type="number" placeholder="50" value={productForm.stock} onChange={(e) => setProductForm({...productForm, stock: e.target.value})} /></div>
                                         </div>
                                         <div><label className="block text-xs font-bold mb-1" style={{ color: NAVY }}>Description</label><textarea className="w-full p-3 border rounded-lg bg-gray-50 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" style={{ borderColor: BORDER }} placeholder="Describe your dish..." rows="3" value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} /></div>
-                                        <div><label className="block text-xs font-bold mb-1" style={{ color: NAVY }}>Image URL</label><StyledInput type="text" placeholder="https://example.com/image.jpg" value={productForm.image_url} onChange={(e) => setProductForm({...productForm, image_url: e.target.value})} /></div>
+                                        <div>
+                                            <label className="block text-xs font-bold mb-1" style={{ color: NAVY }}>Product Image</label>
+                                            <input type="file" accept="image/*" onChange={handleProductImageChange} className="w-full p-2 border rounded-lg bg-gray-50 text-sm" style={{ borderColor: BORDER }} />
+                                            {productForm.imagePreview && (
+                                                <img src={productForm.imagePreview} alt="Preview" className="mt-2 rounded-lg w-full max-h-40 object-cover border" style={{ borderColor: BORDER }} />
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex gap-3 mt-6">
                                         <button onClick={() => { setShowProductModal(false); setEditingProduct(null); }} className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg font-bold hover:bg-gray-300">Cancel</button>
