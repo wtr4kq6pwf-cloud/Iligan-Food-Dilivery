@@ -107,7 +107,15 @@ export const OrderHistory = ({ setPage, user, setSelectedOrder }) => {
 
   return (
     <div className="p-4 md:p-6 mx-auto w-full max-w-3xl">
-      <SectionTitle icon="🛵" title={`My Iligan Orders (${groupedOrders.length} Segments)`} />
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center justify-center w-14 h-14 bg-orange-100 rounded-full">
+          <span className="text-2xl">📦</span>
+        </div>
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: 'navy' }}>My Orders</h1>
+          <p className="text-sm text-gray-500">Total: <span className="font-semibold" style={{ color: ORANGE }}>{groupedOrders.length}</span> {groupedOrders.length === 1 ? 'order' : 'orders'}</p>
+        </div>
+      </div>
       <div className="space-y-4">
         {groupedOrders.map(order => (
           <div 
