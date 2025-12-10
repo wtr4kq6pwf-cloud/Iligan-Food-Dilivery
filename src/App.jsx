@@ -18,20 +18,22 @@ import LandingPage from './components/LandingPage'; // <-- NEW IMPORT
 import './App.css';
 
 const App = () => {
+
   const { user, authReady } = useSupabase();
   const { isOnline } = useOfflineDetection();
-  const [page, setPage] = useState('landing'); // <-- CHANGED: Starts on the landing page
+  const [page, setPage] = useState('landing');
   const [cart, setCart] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showSetupProfileModal, setShowSetupProfileModal] = useState(false);
+  const [justSignedUp, setJustSignedUp] = useState(false);
 
   const handleSignOut = useCallback(() => {
     supabase.auth.signOut().then(() => {
       setCart([]);
-      setPage('auth'); 
+      setPage('auth');
     }).catch(console.error);
   }, []);
-
-  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     if (!authReady) return;
@@ -84,31 +86,54 @@ const App = () => {
     const offlineUser = offlineUserStr ? JSON.parse(offlineUserStr) : null;
     
     if (!user && !offlineUser) {
-        // Show auth page if not logged in and not on a special page
-      return <AuthPage onSuccess={() => setPage('products')} />;
-    }    // 4. MAIN APP LOGIC (Switch statement for authenticated views)
-    switch (page) {
-      case 'products':
-        return <RestaurantListing setPage={setPage} cart={cart} setCart={setCart} />;
-      case 'cart':
-        return <Cart setPage={setPage} cart={cart} setCart={setCart} />;
-      case 'checkout':
-        if (cart.length === 0) {
-          setPage('products');
-          return null;
-        }
-        return <Checkout setPage={setPage} cart={cart} setCart={setCart} user={user} />;
-      case 'history':
-        return <OrderHistory setPage={setPage} user={user} setSelectedOrder={setSelectedOrder} />;
-      case 'details':
-        if (!selectedOrder) {
-          setPage('history');
-          return null;
-        }
-        return <OrderTracking order={selectedOrder} setPage={setPage} user={user} />;
-      default:
-        return <RestaurantListing setPage={setPage} cart={cart} setCart={setCart} />;
-    }
+      // Show auth page if not logged in and not on a special page
+      return <AuthPage onSuccess={() => {
+        setPage('products');
+        setShowSetupProfileModal(true);
+        setJustSignedUp(true);
+      }} />;
+    }
+    switch (page) {
+      case 'products':
+        return <>
+          <RestaurantListing setPage={setPage} cart={cart} setCart={setCart} />
+          {showSetupProfileModal && justSignedUp && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full text-center">
+                <h2 className="text-xl font-bold mb-4" style={{ color: ORANGE }}>Set Up Your Profile</h2>
+                <p className="mb-6 text-gray-700">Welcome! Please set up your profile to complete your account and enjoy all features.</p>
+                <button
+                  className="w-full py-3 text-white rounded-lg font-bold transition duration-150 ease-in-out shadow-lg"
+                  style={{ backgroundColor: ORANGE }}
+                  onClick={() => {
+                    setShowSetupProfileModal(false);
+                    setShowProfile(true);
+                    setJustSignedUp(false);
+                  }}
+                >Set Up Profile</button>
+              </div>
+            </div>
+          )}
+        </>;
+      case 'cart':
+        return <Cart setPage={setPage} cart={cart} setCart={setCart} />;
+      case 'checkout':
+        if (cart.length === 0) {
+          setPage('products');
+          return null;
+        }
+        return <Checkout setPage={setPage} cart={cart} setCart={setCart} user={user} />;
+      case 'history':
+        return <OrderHistory setPage={setPage} user={user} setSelectedOrder={setSelectedOrder} />;
+      case 'details':
+        if (!selectedOrder) {
+          setPage('history');
+          return null;
+        }
+        return <OrderTracking order={selectedOrder} setPage={setPage} user={user} />;
+      default:
+        return <RestaurantListing setPage={setPage} cart={cart} setCart={setCart} />;
+    }
   };
 
   const cartItemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
