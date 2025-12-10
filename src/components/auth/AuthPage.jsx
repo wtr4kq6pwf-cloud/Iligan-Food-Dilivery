@@ -71,7 +71,17 @@ export const AuthPage = ({ onSuccess }) => {
     
     if (result.success) {
       setAuthLoading(false);
-      onSuccess(); // Navigate to homepage
+      // Simulate user object for offline mode
+      const offlineUser = {
+        id: result.user.id,
+        email: result.user.email,
+        user_metadata: { name: result.user.name }
+      };
+      // Store offline user in session storage for app to recognize
+      sessionStorage.setItem('offlineUser', JSON.stringify(offlineUser));
+      setTimeout(() => {
+        onSuccess(); // Navigate to shop/products
+      }, 500);
     } else {
       setError(result.error || 'Login failed');
       setAuthLoading(false);

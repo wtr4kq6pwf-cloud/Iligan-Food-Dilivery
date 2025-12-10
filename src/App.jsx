@@ -39,7 +39,12 @@ const App = () => {
     // Skip redirects if we are intentionally on the 'landing' page
     if (page === 'landing') return;
 
-    if (!user) {
+    // Check for offline user
+    const offlineUserStr = sessionStorage.getItem('offlineUser');
+    const offlineUser = offlineUserStr ? JSON.parse(offlineUserStr) : null;
+    const currentUser = user || offlineUser;
+
+    if (!currentUser) {
       if (page !== 'auth' && page !== 'restaurant-dashboard') {
         setPage('auth');
       }
@@ -75,12 +80,13 @@ const App = () => {
     }
 
     // 3. AUTH LOGIC
-    if (!user) {
+    const offlineUserStr = sessionStorage.getItem('offlineUser');
+    const offlineUser = offlineUserStr ? JSON.parse(offlineUserStr) : null;
+    
+    if (!user && !offlineUser) {
         // Show auth page if not logged in and not on a special page
-      return <AuthPage onSuccess={() => setPage('products')} />;
-    }
-
-    // 4. MAIN APP LOGIC (Switch statement for authenticated views)
+      return <AuthPage onSuccess={() => setPage('products')} />;
+    }    // 4. MAIN APP LOGIC (Switch statement for authenticated views)
     switch (page) {
       case 'products':
         return <RestaurantListing setPage={setPage} cart={cart} setCart={setCart} />;
